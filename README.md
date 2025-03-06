@@ -66,5 +66,5 @@ This system automates fetching sent emails from Microsoft Outlook using Microsof
 - Implement webhook triggers for real-time email processing.
 
 ---
-**Author**: Internal Tech Team  
+**Author**: Surya kiran
 **Last Updated**: `March 2025`  
