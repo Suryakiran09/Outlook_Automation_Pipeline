@@ -9,6 +9,7 @@ import requests
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import urllib.parse
 from dotenv import load_dotenv
+from traceback import format_exc
 import streamlit as st
 
 
@@ -90,6 +91,7 @@ def fetch_sent_emails(batch_number, email_data, lock, access_token, callback_fn=
                     "to": [recipient["emailAddress"]["address"] for recipient in msg.get("toRecipients", [])],
                     "cc": [recipient["emailAddress"]["address"] for recipient in msg.get("ccRecipients", [])],
                     "bcc": [recipient["emailAddress"]["address"] for recipient in msg.get("bccRecipients", [])],
+                    "first_name": msg.get("toRecipients", [{}])[0].get("emailAddress").get("name", ""),
                     "received": msg.get("receivedDateTime", "Unknown"),
                 }
                 batch_emails.append(email_info)
@@ -120,6 +122,7 @@ def aggregate_email_data(email_data):
                     "Recipient Email": recipient,
                     "Company / Management": domain,
                     "Total Mails Sent": 0,
+                    "Name": email["first_name"],
                     "Last Interacted Date": format_date_for_airtable(email["received"]),
                 }
 
@@ -157,6 +160,8 @@ def push_to_airtable(aggregated_data, callback_fn=None):
         record["fields"]["Recipient Email"]: {"id": record["id"], "fields": record["fields"]}
         for record in existing_records
     }
+    
+    log_message(f"Found {len(existing_records)} existing records")
 
     no_of_updated_records = 0
     no_of_new_records = 0
@@ -230,7 +235,7 @@ def main(callback_fn=None):
         log_message("🛑 Processing stopped by user", callback_fn)
         return
     
-    total_emails = get_total_email_count(access_token)
+    total_emails = 150 #get_total_email_count(access_token)
     log_message(f"📩 Total emails in Sent folder: {total_emails}", callback_fn)
 
     total_batches = (total_emails // BATCH_SIZE) + (1 if total_emails % BATCH_SIZE != 0 else 0)
@@ -275,7 +280,7 @@ def main(callback_fn=None):
             aggregated_data = aggregate_email_data(email_data)
             push_to_airtable(aggregated_data, callback_fn)
         except Exception as e:
-            log_message(f"❌ Error in final processing: {str(e)}", callback_fn)
+            log_message(f"❌ Error in final processing: {str(e)}: {format_exc()}", callback_fn)
 
 if __name__ == "__main__":
     main()
