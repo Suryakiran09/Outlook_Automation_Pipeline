@@ -235,7 +235,7 @@ def main(callback_fn=None):
         log_message("🛑 Processing stopped by user", callback_fn)
         return
     
-    total_emails = 150 #get_total_email_count(access_token)
+    total_emails = get_total_email_count(access_token)
     log_message(f"📩 Total emails in Sent folder: {total_emails}", callback_fn)
 
     total_batches = (total_emails // BATCH_SIZE) + (1 if total_emails % BATCH_SIZE != 0 else 0)
