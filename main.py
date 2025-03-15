@@ -69,6 +69,14 @@ def log_message(message, callback_fn=None):
     if callback_fn:
         callback_fn(message)  # Use the callback function
     print(message)  # Keep console logging
+    
+def extract_emails(data):
+    result = {}
+    for recipient in data.get("toRecipients", []) + data.get("ccRecipients", []) + data.get("bccRecipients", []):
+        email = recipient["emailAddress"]["address"]
+        name = recipient["emailAddress"]["name"]
+        result[email] = name
+    return result
 
 # Fetch emails from Outlook
 def fetch_sent_emails(batch_number, email_data, lock, access_token, callback_fn=None):
@@ -85,14 +93,15 @@ def fetch_sent_emails(batch_number, email_data, lock, access_token, callback_fn=
             messages = response.json().get("value", [])
             batch_emails = []
             for msg in messages:
+                
                 email_info = {
                     "subject": msg.get("subject", "No Subject"),
                     "from": msg.get("sender", {}).get("emailAddress", {}).get("address", "Unknown"),
                     "to": [recipient["emailAddress"]["address"] for recipient in msg.get("toRecipients", [])],
                     "cc": [recipient["emailAddress"]["address"] for recipient in msg.get("ccRecipients", [])],
                     "bcc": [recipient["emailAddress"]["address"] for recipient in msg.get("bccRecipients", [])],
-                    "first_name": msg.get("toRecipients", [{}])[0].get("emailAddress").get("name", ""),
                     "received": msg.get("receivedDateTime", "Unknown"),
+                    "name_data": extract_emails(msg)
                 }
                 batch_emails.append(email_info)
 
@@ -122,7 +131,7 @@ def aggregate_email_data(email_data):
                     "Recipient Email": recipient,
                     "Company / Management": domain,
                     "Total Mails Sent": 0,
-                    "Name": email["first_name"],
+                    "Name": email.get("name_data", {}).get(recipient, ""),
                     "Last Interacted Date": format_date_for_airtable(email["received"]),
                 }
 
